@@ -28,6 +28,7 @@ import AdminAgenda from './pages/admin/AdminAgenda';
 import AdminAvailability from './pages/admin/AdminAvailability';
 import AdminRoleAssignmentPage from './pages/admin/AdminRoleAssignmentPage';
 import RoleAssignmentOverview from './pages/admin/RoleAssignmentOverview';
+import RoleAssignmentPage from './pages/RoleAssignmentPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -169,6 +170,11 @@ const AppContent = () => {
           <Route path="/role-assignment" element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <RoleAssignmentOverview />
+            </ProtectedRoute>
+          } />
+          <Route path="/role-assignment-new" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <RoleAssignmentPage />
             </ProtectedRoute>
           } />
 

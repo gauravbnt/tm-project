@@ -5,7 +5,7 @@ export const assignRolesHelperService = {
   getAssignRolesData: async (meetingId) => {
     try {
       console.log(`Fetching role assignment data for meeting ${meetingId}...`)
-      const response = await api.get(`/assign/get/${meetingId}`)
+      const response = await api.get(`/assign-helper/get/${meetingId}`)
       console.log('Role assignment data response:', response.data)
       return Array.isArray(response.data) ? response.data : []
     } catch (error) {

@@ -42,7 +42,7 @@ const RoleAssignmentOverview = () => {
 
       // Filter out meetings with invalid IDs and log warnings
       const validMeetings = meetingsData.filter(meeting => {
-        if (!meeting || !meeting.id) {
+        if (!meeting || (!meeting.id && !meeting.meetingId)) {
           console.warn('Meeting with invalid ID found:', meeting)
           return false
         }
@@ -53,7 +53,7 @@ const RoleAssignmentOverview = () => {
 
       // Fetch assignments for all valid meetings
       const assignmentsPromises = validMeetings.map(meeting => 
-        memberRoleAssignService.getAssignmentsByMeeting(meeting.id)
+        memberRoleAssignService.getAssignmentsByMeeting(meeting.id || meeting.meetingId)
           .catch(() => []) // Handle errors gracefully
       )
       
@@ -62,18 +62,20 @@ const RoleAssignmentOverview = () => {
       // Create assignments object with meetingId as key
       const assignmentsMap = {}
       validMeetings.forEach((meeting, index) => {
-        assignmentsMap[meeting.id] = assignmentsResults[index] || []
+        const meetingId = meeting.id || meeting.meetingId
+        assignmentsMap[meetingId] = assignmentsResults[index] || []
       })
       
       // Also include meetings with invalid IDs in the map (with empty assignments)
       meetingsData.forEach(meeting => {
-        if (!meeting || !meeting.id) {
+        const meetingId = meeting.id || meeting.meetingId
+        if (!meeting || !meetingId) {
           console.warn('Skipping meeting with invalid ID in assignments map:', meeting)
           return
         }
-        if (!assignmentsMap[meeting.id]) {
-          console.log(`Adding empty assignments for meeting ID: ${meeting.id}`)
-          assignmentsMap[meeting.id] = []
+        if (!assignmentsMap[meetingId]) {
+          console.log(`Adding empty assignments for meeting ID: ${meetingId}`)
+          assignmentsMap[meetingId] = []
         }
       })
       
@@ -349,7 +351,7 @@ const RoleAssignmentOverview = () => {
             ) : (
               filteredMeetings.map((meeting) => {
                 const meetingStatus = getMeetingStatus(meeting)
-                const assignmentCount = getAssignmentCount(meeting.id)
+                const assignmentCount = getAssignmentCount(meeting.id || meeting.meetingId)
                 const now = new Date()
                 const meetingDate = new Date(meeting.date)
                 const isToday = meetingDate.toDateString() === now.toDateString()
@@ -361,7 +363,7 @@ const RoleAssignmentOverview = () => {
                 const isOngoing = isToday && currentTime >= startTime && currentTime <= endTime
 
                 return (
-                  <tr key={meeting.id} className={`hover:bg-gray-50 ${isOngoing ? 'bg-green-50 border-l-4 border-green-400' : ''}`}>
+                  <tr key={meeting.id || meeting.meetingId} className={`hover:bg-gray-50 ${isOngoing ? 'bg-green-50 border-l-4 border-green-400' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="text-sm font-medium text-gray-900">{meeting.meetingTheme || 'Untitled Meeting'}</div>
@@ -395,9 +397,9 @@ const RoleAssignmentOverview = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {meeting.id ? (
+                      {(meeting.id || meeting.meetingId) ? (
                         <Link
-                          to={`/admin/role-assignment/${meeting.id}`}
+                          to={`/admin/role-assignment/${meeting.id || meeting.meetingId}`}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
                           Assign Roles

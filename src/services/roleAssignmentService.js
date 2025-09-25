@@ -3,29 +3,30 @@ import api from './api'
 export const roleAssignmentService = {
   // Assign roles to a member for a specific meeting
   assignRoles: async (meetingId, memberId, roleIds) => {
-    const response = await api.post(`/member-roles/assign`, {
+    const assignments = roleIds.map(roleId => ({
       meetingId,
       memberId,
-      roleIds
-    })
+      roleId
+    }))
+    const response = await api.post(`/role-assign/assign`, assignments)
     return response.data
   },
 
   // Get all role assignments for a meeting
   getMeetingRoleAssignments: async (meetingId) => {
-    const response = await api.get(`/member-roles/meeting/${meetingId}/assignments`)
+    const response = await api.get(`/role-assign/meeting/${meetingId}`)
     return response.data
   },
 
-  // Remove a role assignment
-  removeRoleAssignment: async (assignmentId) => {
-    const response = await api.delete(`/member-roles/assignment/${assignmentId}`)
-    return response.data
-  },
+  // Remove a role assignment - TODO: Backend endpoint not implemented yet
+  // removeRoleAssignment: async (assignmentId) => {
+  //   const response = await api.delete(`/role-assign/assignment/${assignmentId}`)
+  //   return response.data
+  // },
 
   // Get available roles for a meeting (with remaining counts)
   getAvailableRolesWithCounts: async (meetingId) => {
-    const response = await api.get(`/roles/meeting/${meetingId}/available-with-counts`)
+    const response = await api.get(`/role-preferences/meeting/${meetingId}/available-roles`)
     return response.data
   },
 
@@ -37,13 +38,19 @@ export const roleAssignmentService = {
 
   // Get member's past role assignments
   getMemberPastRoles: async (memberId) => {
-    const response = await api.get(`/member-roles/member/${memberId}/past-assignments`)
+    const response = await api.get(`/role-assign/member/${memberId}`)
     return response.data
   },
 
   // Get meeting roles configuration
   getMeetingRoles: async (meetingId) => {
-    const response = await api.get(`/meetings/${meetingId}/roles`)
+    const response = await api.get(`/meeting-roles/meeting/${meetingId}`)
+    return response.data
+  },
+
+  // Get members with their preferred roles for role assignment
+  getMembersWithPreferences: async (meetingId) => {
+    const response = await api.get(`/assign-helper/get/${meetingId}`)
     return response.data
   }
 }

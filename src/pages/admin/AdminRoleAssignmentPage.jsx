@@ -43,7 +43,7 @@ const AdminRoleAssignmentPage = () => {
   const [assigning, setAssigning] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMemberForModal, setSelectedMemberForModal] = useState(null);
-  const [selectedRoleForAssignment, setSelectedRoleForAssignment] = useState('');
+  const [selectedRolesForAssignment, setSelectedRolesForAssignment] = useState([]);
   const [assignRolesData, setAssignRolesData] = useState([]); // Consolidated data from assign roles helper
 
   useEffect(() => {
@@ -169,16 +169,14 @@ const AdminRoleAssignmentPage = () => {
     try {
       setAssigning(true);
 
-      // Create assignments for each selected role
-      const assignmentPromises = selectedRoles.map(roleId =>
-        memberRoleAssignService.createAssignment({
-          memberId: selectedMember.memberId,
-          roleId: roleId,
-          meetingId: meetingId,
-        })
-      );
+      // Create assignments for each selected role using correct format
+      const assignments = selectedRoles.map(roleId => ({
+        meetingId: parseInt(meetingId),
+        memberId: selectedMember.memberId,
+        roleId: roleId
+      }));
 
-      await Promise.all(assignmentPromises);
+      await memberRoleAssignService.assignRoles(assignments);
 
       toast.success('Roles assigned successfully!');
       
@@ -205,16 +203,14 @@ const AdminRoleAssignmentPage = () => {
     try {
       setAssigning(true);
 
-      // Create assignments for each selected role
-      const assignmentPromises = selectedRoles.map(roleId =>
-        memberRoleAssignService.createAssignment({
-          memberId: selectedMember.memberId,
-          roleId: roleId,
-          meetingId: meetingId,
-        })
-      );
+      // Create assignments for each selected role using correct format
+      const assignments = selectedRoles.map(roleId => ({
+        meetingId: parseInt(meetingId),
+        memberId: selectedMember.memberId,
+        roleId: roleId
+      }));
 
-      await Promise.all(assignmentPromises);
+      await memberRoleAssignService.assignRoles(assignments);
 
       toast.success('Roles assigned successfully!');
       
@@ -234,36 +230,63 @@ const AdminRoleAssignmentPage = () => {
 
   const handleAssignRoleClick = (member) => {
     setSelectedMemberForModal(member);
-    setSelectedRoleForAssignment('');
+    
+    // Pre-select roles that are currently assigned to this member
+    const currentlyAssignedRoles = memberAssignments
+      .filter(assignment => assignment.memberId === member.memberId)
+      .map(assignment => assignment.roleId);
+    
+    setSelectedRolesForAssignment(currentlyAssignedRoles);
     setIsModalOpen(true);
   };
 
   const handleModalRoleAssignment = async () => {
-    if (!selectedMemberForModal || !selectedRoleForAssignment) {
-      toast.error('Please select a role');
+    if (!selectedMemberForModal || selectedRolesForAssignment.length === 0) {
+      toast.error('Please select at least one role');
       return;
     }
 
     try {
       setAssigning(true);
 
-      // Create assignment
-      await memberRoleAssignService.createAssignment({
-        memberId: selectedMemberForModal.memberId,
-        roleId: parseInt(selectedRoleForAssignment),
-        meetingId: meetingId,
-      });
+      // Get currently assigned roles for this member
+      const currentlyAssignedRoles = memberAssignments
+        .filter(assignment => assignment.memberId === selectedMemberForModal.memberId)
+        .map(assignment => assignment.roleId);
 
-      toast.success('Role assigned successfully!');
+      // Check if there are any changes
+      const hasChanges = 
+        currentlyAssignedRoles.length !== selectedRolesForAssignment.length ||
+        !currentlyAssignedRoles.every(roleId => selectedRolesForAssignment.includes(roleId));
+
+      if (!hasChanges) {
+        toast.info('No changes made to role assignments');
+        setIsModalOpen(false);
+        setSelectedMemberForModal(null);
+        setSelectedRolesForAssignment([]);
+        return;
+      }
+
+      // Create assignments for the selected roles (this will replace existing assignments)
+      const assignments = selectedRolesForAssignment.map(roleId => ({
+        meetingId: parseInt(meetingId),
+        memberId: selectedMemberForModal.memberId,
+        roleId: parseInt(roleId)
+      }));
+
+      await memberRoleAssignService.assignRoles(assignments);
+
+      const roleCount = selectedRolesForAssignment.length;
+      toast.success(`${roleCount} role${roleCount > 1 ? 's' : ''} updated successfully!`);
       setIsModalOpen(false);
       setSelectedMemberForModal(null);
-      setSelectedRoleForAssignment('');
+      setSelectedRolesForAssignment([]);
       
       // Refresh data
       await fetchMeetingData();
     } catch (error) {
-      console.error('Error assigning role:', error);
-      toast.error('Failed to assign role');
+      console.error('Error updating roles:', error);
+      toast.error('Failed to update roles');
     } finally {
       setAssigning(false);
     }
@@ -272,7 +295,78 @@ const AdminRoleAssignmentPage = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedMemberForModal(null);
-    setSelectedRoleForAssignment('');
+    setSelectedRolesForAssignment([]);
+  };
+
+  const handleRoleSelectionToggle = (roleId) => {
+    setSelectedRolesForAssignment(prev => {
+      if (prev.includes(roleId)) {
+        // Remove role if already selected
+        return prev.filter(id => id !== roleId);
+      } else {
+        // Check if role is still available before adding
+        const availableRoles = getAvailableRolesWithCounts(selectedMemberForModal?.memberId);
+        const roleInfo = availableRoles.find(r => r.roleId === roleId);
+        
+        if (roleInfo && roleInfo.availableCount > 0) {
+          // Add role if available
+          return [...prev, roleId];
+        } else {
+          // Show error if role is not available
+          toast.error(`${getRoleName(roleId)} is no longer available for assignment`);
+          return prev;
+        }
+      }
+    });
+  };
+
+  const handleQuickAssignPreferences = () => {
+    if (!selectedMemberForModal) return;
+    
+    const memberPreferences = getMemberPreferences(selectedMemberForModal.memberId);
+    const availableRoles = getAvailableRolesWithCounts(selectedMemberForModal.memberId);
+    
+    // Only select roles that are still available
+    const preferredRoleIds = memberPreferences
+      .map(pref => pref.roleId)
+      .filter(roleId => {
+        const roleInfo = availableRoles.find(r => r.roleId === roleId);
+        return roleInfo && roleInfo.availableCount > 0;
+      });
+    
+    setSelectedRolesForAssignment(preferredRoleIds);
+  };
+
+  // Get roles with their counts and availability (for updating member roles)
+  const getAvailableRolesWithCounts = (memberId = null) => {
+    const meetingRoles = getMeetingAvailableRoles();
+    
+    return meetingRoles.map(role => {
+      // Count how many times this role is already assigned to OTHER members
+      const assignedToOthers = memberAssignments.filter(assignment => 
+        assignment.roleId === role.roleId && assignment.memberId !== memberId
+      ).length;
+      
+      // Count how many times this role is assigned to the current member
+      const assignedToCurrentMember = memberId ? 
+        memberAssignments.filter(assignment => 
+          assignment.roleId === role.roleId && assignment.memberId === memberId
+        ).length : 0;
+      
+      // Calculate available count
+      // When updating, we treat current member's assignments as available slots
+      const totalCount = role.maxAssignments || role.count || 1; // Default to 1 if not specified
+      const availableCount = Math.max(0, totalCount - assignedToOthers);
+      
+      return {
+        ...role,
+        assignedCount: assignedToOthers + assignedToCurrentMember,
+        assignedToCurrentMember,
+        totalCount,
+        availableCount,
+        isAvailable: availableCount > 0
+      };
+    }).filter(role => role.isAvailable); // Only show roles that have available slots
   };
 
   const formatDate = (dateString) => {
@@ -289,8 +383,15 @@ const AdminRoleAssignmentPage = () => {
     return role ? role.roleName : 'Unknown Role';
   };
 
-  // Get member's preferences for this meeting
+  // Get member's preferences for this meeting from assign roles data
   const getMemberPreferences = (memberId) => {
+    // First try to get from assignRolesData (new endpoint)
+    const memberData = assignRolesData.find(data => data.id === memberId);
+    if (memberData && memberData.pref_roles) {
+      // Sort by prefOrder to maintain preference priority
+      return memberData.pref_roles.sort((a, b) => a.prefOrder - b.prefOrder);
+    }
+    // Fallback to old meetingPreferences data
     return meetingPreferences.filter(pref => pref.memberId === memberId);
   };
 
@@ -339,7 +440,10 @@ const AdminRoleAssignmentPage = () => {
   // Get member's preferred role names
   const getMemberPreferredRoleNames = (memberId) => {
     const preferences = getMemberPreferences(memberId);
-    return preferences.map(pref => getRoleName(pref.roleId)).filter(name => name !== 'Unknown Role');
+    return preferences.map(pref => {
+      // New format uses pref.roleId directly
+      return getRoleName(pref.roleId);
+    }).filter(name => name && name !== 'Unknown Role');
   };
 
   // Filter members based on selected role preference
@@ -397,6 +501,8 @@ const AdminRoleAssignmentPage = () => {
           </div>
         </div>
 
+
+
         <div className="grid grid-cols-1 gap-6">
           {/* All Members with Preferred Roles */}
           <div className="col-span-1">
@@ -433,25 +539,26 @@ const AdminRoleAssignmentPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {availableMembers
-                        .filter(member => isMemberAvailable(member.memberId))
-                        .map((member) => {
-                          const preferredRoleNames = getMemberPreferredRoleNames(member.memberId);
+                      {assignRolesData
+                        .filter(memberData => isMemberAvailable(memberData.id))
+                        .map((memberData) => {
+                          const preferredRoleNames = getMemberPreferredRoleNames(memberData.id);
                           const assignedRoles = memberAssignments
-                            .filter(assignment => assignment.memberId === member.memberId)
+                            .filter(assignment => assignment.memberId === memberData.id)
                             .map(assignment => getRoleName(assignment.roleId));
                           
                           return (
-                            <tr key={member.memberId} className="hover:bg-gray-50">
+                            <tr key={memberData.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {member.memberId}
+                                {memberData.id}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">
-                                  {member.firstName} {member.lastName}
+                                  {memberData.name}
                                 </div>
                                 <div className="text-sm text-gray-500">
-                                  {member.email}
+                                  {/* Email not provided in new API, get from availableMembers */}
+                                  {availableMembers.find(m => m.memberId === memberData.id)?.email || ''}
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -472,7 +579,10 @@ const AdminRoleAssignmentPage = () => {
                                       </span>
                                     ))}
                                     <button
-                                      onClick={() => handleAssignRoleClick(member)}
+                                      onClick={() => {
+                                        const memberObj = availableMembers.find(m => m.memberId === memberData.id) || { memberId: memberData.id, firstName: memberData.name.split(' ')[0], lastName: memberData.name.split(' ').slice(1).join(' ') };
+                                        handleAssignRoleClick(memberObj);
+                                      }}
                                       className="ml-2 text-indigo-600 hover:text-indigo-900 text-xs"
                                     >
                                       Change
@@ -480,7 +590,10 @@ const AdminRoleAssignmentPage = () => {
                                   </div>
                                 ) : (
                                   <button
-                                    onClick={() => handleAssignRoleClick(member)}
+                                    onClick={() => {
+                                      const memberObj = availableMembers.find(m => m.memberId === memberData.id) || { memberId: memberData.id, firstName: memberData.name.split(' ')[0], lastName: memberData.name.split(' ').slice(1).join(' ') };
+                                      handleAssignRoleClick(memberObj);
+                                    }}
                                     className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                   >
                                     Assign Role
@@ -777,7 +890,10 @@ const AdminRoleAssignmentPage = () => {
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Assign Role to {selectedMemberForModal?.firstName} {selectedMemberForModal?.lastName}
+                  {memberAssignments.some(assignment => assignment.memberId === selectedMemberForModal?.memberId) 
+                    ? `Update Roles for ${selectedMemberForModal?.firstName} ${selectedMemberForModal?.lastName}`
+                    : `Assign Roles to ${selectedMemberForModal?.firstName} ${selectedMemberForModal?.lastName}`
+                  }
                 </h3>
                 <button
                   onClick={handleCloseModal}
@@ -788,27 +904,73 @@ const AdminRoleAssignmentPage = () => {
               </div>
               
               <div className="mb-4">
-                <label htmlFor="role-select" className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Role:
-                </label>
-                <select
-                  id="role-select"
-                  value={selectedRoleForAssignment}
-                  onChange={(e) => setSelectedRoleForAssignment(e.target.value)}
-                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                >
-                  <option value="">Choose a role...</option>
-                  {getMeetingAvailableRoles().map(role => (
-                    <option key={role.roleId} value={role.roleId}>
-                      {role.roleName}
-                    </option>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Roles (multiple selection allowed):
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {getAvailableRolesWithCounts(selectedMemberForModal?.memberId).length} roles available
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+                  {getAvailableRolesWithCounts(selectedMemberForModal?.memberId).map(role => (
+                    <label key={role.roleId} className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
+                      role.assignedToCurrentMember > 0 ? 'bg-blue-50 border border-blue-200' : ''
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRolesForAssignment.includes(role.roleId)}
+                          onChange={() => handleRoleSelectionToggle(role.roleId)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-900">{role.roleName}</span>
+                          {role.assignedToCurrentMember > 0 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Currently Assigned
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">
+                          {role.availableCount} of {role.totalCount} available
+                        </span>
+                        {role.availableCount <= 2 && role.availableCount > 0 && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Limited
+                          </span>
+                        )}
+                      </div>
+                    </label>
                   ))}
-                </select>
+                  {getAvailableRolesWithCounts(selectedMemberForModal?.memberId).length === 0 && (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      No roles available for assignment
+                    </div>
+                  )}
+                </div>
+                {selectedRolesForAssignment.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected: {selectedRolesForAssignment.length} role{selectedRolesForAssignment.length > 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
               
               {selectedMemberForModal && (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Member Preferences:</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-900">Member Preferences:</h4>
+                    {getMemberPreferredRoleNames(selectedMemberForModal.memberId).length > 0 && (
+                      <button
+                        onClick={handleQuickAssignPreferences}
+                        className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        Quick Assign All Preferences
+                      </button>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-600">
                     {getMemberPreferredRoleNames(selectedMemberForModal.memberId).length > 0 ? (
                       <div className="flex flex-wrap gap-1">
@@ -838,7 +1000,7 @@ const AdminRoleAssignmentPage = () => {
                 </button>
                 <button
                   onClick={handleModalRoleAssignment}
-                  disabled={assigning || !selectedRoleForAssignment}
+                  disabled={assigning || selectedRolesForAssignment.length === 0}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {assigning ? (
@@ -847,7 +1009,7 @@ const AdminRoleAssignmentPage = () => {
                       Assigning...
                     </div>
                   ) : (
-                    'Assign Role'
+                    `Assign ${selectedRolesForAssignment.length > 0 ? selectedRolesForAssignment.length : ''} Role${selectedRolesForAssignment.length !== 1 ? 's' : ''}`
                   )}
                 </button>
               </div>
