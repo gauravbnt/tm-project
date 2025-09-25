@@ -32,7 +32,7 @@ public class MemberRoleAssignServiceImpl implements MemberRoleAssignService {
     @Transactional
     public List<MemberRoleAssignResponseDTO> assignRole(List<MemberRoleAssignRequestDTO> memberRoleAssignRequestDTO) {
 
-        assignmentRepository.deleteAllByMeetingId(memberRoleAssignRequestDTO.getFirst().getMeetingId());
+        assignmentRepository.deleteAllByMeetingIdAndMemberId(memberRoleAssignRequestDTO.getFirst().getMeetingId(),memberRoleAssignRequestDTO.getFirst().getMemberId());
 
         List<MemberRoleAssignment> roleAssignments = memberRoleAssignRequestDTO.stream()
                 .map(dto -> MemberRoleAssignment.builder()

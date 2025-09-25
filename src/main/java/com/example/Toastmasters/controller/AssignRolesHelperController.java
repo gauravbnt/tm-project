@@ -10,7 +10,7 @@ import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
-@RequestMapping("/assign")
+@RequestMapping("/assign-helper")
 public class AssignRolesHelperController {
 
     private final  AssignRolesHelperServiceImpl assignRolesHelperService;

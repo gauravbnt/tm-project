@@ -38,10 +38,12 @@ public class AssignRolesHelperServiceImpl {
             AssignRolesHelperDTO assignRolesHelperDTO = new AssignRolesHelperDTO();
             assignRolesHelperDTO.setId(member.getMemberId());
             assignRolesHelperDTO.setName(member.getName());
+            assignRolesHelperDTO.setMeeting_id(meetingId);
 
             List<RolePreference> rolePreferenceList= rolePreferenceRepository.findAllByMemberIdAndMeetingId(member.getMemberId(),meetingId);
             assignRolesHelperDTO.setPref_roles(rolePreferenceList);
-            assignRolesHelperDTOList.add(assignRolesHelperDTO);
+            if(!rolePreferenceList.isEmpty())
+                assignRolesHelperDTOList.add(assignRolesHelperDTO);
         }
 
         return assignRolesHelperDTOList;

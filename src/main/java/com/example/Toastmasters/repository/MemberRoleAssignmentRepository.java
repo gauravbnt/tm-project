@@ -13,5 +13,5 @@ public interface MemberRoleAssignmentRepository extends JpaRepository<MemberRole
     List<MemberRoleAssignment> findByMemberId(Long memberId);
 
     @Transactional
-    void deleteAllByMeetingId(Long meetingId);
+    void deleteAllByMeetingIdAndMemberId(Long meetingId, Long memberId);
 }
