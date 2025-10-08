@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { toast } from 'react-hot-toast'
 import Swal from 'sweetalert2'
-import { Home, Users, Calendar, Settings, LogOut, User, Menu, X, FileText, Shield } from 'lucide-react'
+import { Home, Users, Calendar, Settings, LogOut, User, Menu, X, FileText, Shield, Award } from 'lucide-react'
 import ConfirmationModal from '../common/ConfirmationModal'
 
 const Navbar = () => {
@@ -51,8 +51,8 @@ const Navbar = () => {
     { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/members', label: 'Members', icon: Users },
     { path: '/meetings', label: 'Meetings', icon: Calendar },
-    { path: '/agenda', label: 'Agenda', icon: FileText },
     { path: '/role-assignment', label: 'Role Assignment', icon: Users },
+    { path: '/agenda', label: 'Agenda', icon: FileText },
   ]
 
   // Member navigation items
@@ -98,6 +98,19 @@ const Navbar = () => {
                 >
                   <Calendar size={18} />
                   <span>Meetings</span>
+                </Link>
+              )}
+              
+              {/* Roles History Link for Members */}
+              {user?.role === 'MEMBER' && (
+                <Link
+                  to="/member-roles-history"
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                    isActive('/member-roles-history') ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Award size={18} />
+                  <span>Roles History</span>
                 </Link>
               )}
             </div>

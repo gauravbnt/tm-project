@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import MemberDashboard from './pages/MemberDashboard';
 import MemberProfile from './pages/MemberProfile';
 import MemberMeetings from './pages/MemberMeetings';
+import MemberRolesHistory from './pages/MemberRolesHistory';
 import Members from './pages/Members';
 import MemberForm from './components/members/MemberForm';
 import MemberList from './components/members/MemberList';
@@ -25,7 +26,6 @@ import MemberAvailability from './pages/MemberAvailability';
 import MarkAvailability from './pages/MarkAvailability';
 import MarkAvailabilityPage from './pages/MarkAvailabilityPage';
 import AdminAgenda from './pages/admin/AdminAgenda';
-import AdminAvailability from './pages/admin/AdminAvailability';
 import AdminRoleAssignmentPage from './pages/admin/AdminRoleAssignmentPage';
 import RoleAssignmentOverview from './pages/admin/RoleAssignmentOverview';
 import RoleAssignmentPage from './pages/RoleAssignmentPage';
@@ -150,16 +150,16 @@ const AppContent = () => {
               <MemberMeetings />
             </ProtectedRoute>
           } />
+          <Route path="/member-roles-history" element={
+            <ProtectedRoute allowedRoles={['MEMBER']}>
+              <MemberRolesHistory />
+            </ProtectedRoute>
+          } />
 
           {/* Admin only routes */}
           <Route path="/agenda" element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AdminAgenda />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/availability" element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <AdminAvailability />
             </ProtectedRoute>
           } />
           <Route path="/admin/role-assignment/:meetingId" element={

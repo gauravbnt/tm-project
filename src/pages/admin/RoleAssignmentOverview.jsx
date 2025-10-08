@@ -24,7 +24,7 @@ const RoleAssignmentOverview = () => {
   const [assignments, setAssignments] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState('upcoming')
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -92,6 +92,11 @@ const RoleAssignmentOverview = () => {
 
   const getMeetingTypeColor = (type) => {
     const colors = {
+      'REGULAR': 'bg-blue-100 text-blue-800',
+      'CONTEST': 'bg-purple-100 text-purple-800',
+      'SPECIAL': 'bg-green-100 text-green-800',
+      'WORKSHOP': 'bg-yellow-100 text-yellow-800',
+      // Also handle title case for backward compatibility
       'Regular': 'bg-blue-100 text-blue-800',
       'Contest': 'bg-purple-100 text-purple-800',
       'Special': 'bg-green-100 text-green-800',
@@ -177,7 +182,7 @@ const RoleAssignmentOverview = () => {
     return meetings.filter(meeting => 
       meeting.meetingTheme?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meeting.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      meeting.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meeting.meetingType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meeting.meetingId?.toString().includes(searchTerm)
     )
   }
@@ -386,8 +391,8 @@ const RoleAssignmentOverview = () => {
                       {meeting.location || 'No Location'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getMeetingTypeColor(meeting.type)}`}>
-                        {meeting.type || 'Regular'}
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getMeetingTypeColor(meeting.meetingType)}`}>
+                        {meeting.meetingType || 'REGULAR'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

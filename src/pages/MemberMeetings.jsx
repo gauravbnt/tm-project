@@ -2,20 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { meetingService } from '../services/meetingService';
 import memberAvailabilityService from '../services/memberAvailabilityService';
+import { roleAssignmentService } from '../services/roleAssignmentService';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Users, CheckCircle, XCircle, HelpCircle, Clock, Check, X, AlertCircle, Calendar, Play, Archive, List, Eye, MapPin, Tag, Search } from 'lucide-react';
+import { Users, CheckCircle, XCircle, HelpCircle, Clock, Check, X, AlertCircle, Calendar, Play, Archive, List, Eye, MapPin, Tag, Search, UserCheck, Edit } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const MemberMeetings = () => {
+  const { user } = useAuth();
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('upcoming');
   const [searchTerm, setSearchTerm] = useState('');
+  const [memberAvailabilities, setMemberAvailabilities] = useState([]);
+  const [memberRoleAssignments, setMemberRoleAssignments] = useState([]);
 
   useEffect(() => {
     loadMeetings();
   }, []);
+
+  useEffect(() => {
+    if (user && user.memberId) {
+      loadMemberData();
+    }
+  }, [user]);
 
   const loadMeetings = async () => {
     try {
@@ -29,6 +41,93 @@ const MemberMeetings = () => {
       toast.error('Failed to load meetings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMemberData = async () => {
+    try {
+      // Load member's availability data
+      const availabilities = await memberAvailabilityService.getMemberAvailability(user.memberId);
+      setMemberAvailabilities(availabilities);
+
+      // Load member's role assignments
+      const assignments = await roleAssignmentService.getMemberPastRoles(user.memberId);
+      console.log('Raw role assignments data:', assignments);
+      
+      // If assignments don't have role names, we might need to fetch them
+      if (assignments && assignments.length > 0) {
+        const assignmentsWithRoleNames = await Promise.all(
+          assignments.map(async (assignment) => {
+            // If roleName is already present, use it
+            if (assignment.roleName) {
+              return assignment;
+            }
+            
+            // If only roleId is present, fetch role details
+            if (assignment.roleId) {
+              try {
+                const roleResponse = await api.get(`/roles/${assignment.roleId}`);
+                return {
+                  ...assignment,
+                  roleName: roleResponse.data.roleName || roleResponse.data.name || 'Unknown Role'
+                };
+              } catch (roleError) {
+                console.error(`Error fetching role details for roleId ${assignment.roleId}:`, roleError);
+                return {
+                  ...assignment,
+                  roleName: 'Unknown Role'
+                };
+              }
+            }
+            
+            return assignment;
+          })
+        );
+        
+        console.log('Assignments with role names:', assignmentsWithRoleNames);
+        setMemberRoleAssignments(assignmentsWithRoleNames);
+      } else {
+        setMemberRoleAssignments(assignments || []);
+      }
+    } catch (error) {
+      console.error('Error loading member data:', error);
+      // Don't show error toast as this is non-blocking
+    }
+  };
+
+  // Helper function to get member's availability status for a meeting
+  const getMemberAvailabilityForMeeting = (meetingId) => {
+    return memberAvailabilities.find(avail => 
+      avail.meetingId.toString() === meetingId.toString()
+    );
+  };
+
+  // Helper function to get assigned roles for a meeting (can be multiple)
+  const getAssignedRolesForMeeting = (meetingId) => {
+    return memberRoleAssignments.filter(assignment => 
+      assignment.meetingId.toString() === meetingId.toString()
+    );
+  };
+
+  // Helper function to get assigned role for a meeting (backward compatibility)
+  const getAssignedRoleForMeeting = (meetingId) => {
+    const roles = getAssignedRolesForMeeting(meetingId);
+    return roles.length > 0 ? roles[0] : null;
+  };
+
+  // Helper function to get availability status info
+  const getAvailabilityStatusInfo = (status) => {
+    switch (status) {
+      case 'AVAILABLE':
+        return { color: 'green', icon: CheckCircle, text: 'Available', bgColor: 'bg-green-100', textColor: 'text-green-800' };
+      case 'UNAVAILABLE':
+        return { color: 'red', icon: XCircle, text: 'Unavailable', bgColor: 'bg-red-100', textColor: 'text-red-800' };
+      case 'MAYBE':
+        return { color: 'yellow', icon: AlertCircle, text: 'Maybe', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800' };
+      case 'PENDING':
+        return { color: 'gray', icon: Clock, text: 'Pending', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
+      default:
+        return { color: 'gray', icon: HelpCircle, text: 'Unknown', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
     }
   };
 
@@ -211,13 +310,14 @@ const MemberMeetings = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Role</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredMeetings.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                   {searchTerm ? 'No meetings match your search criteria' : (
                     <>
                       {activeTab === 'all' && 'No meetings found'}
@@ -262,15 +362,79 @@ const MemberMeetings = () => {
                       {meeting.meetingType || 'REGULAR'}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {(() => {
+                      const assignedRoles = getAssignedRolesForMeeting(meeting.meetingId);
+                      if (assignedRoles && assignedRoles.length > 0) {
+                        return (
+                          <div className="flex flex-wrap gap-1">
+                            {assignedRoles.map((role, index) => (
+                              <span 
+                                key={`${role.roleId}-${index}`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                              >
+                                <UserCheck className="h-3 w-3 mr-1" />
+                                {role.roleName || 'Unknown Role'}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <span className="text-sm text-gray-400">Not assigned</span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
-                      <Link
-                        to={`/meetings/${meeting.meetingId}/mark-availability`}
-                        className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Mark Availability
-                      </Link>
+                      {(() => {
+                        const assignedRoles = getAssignedRolesForMeeting(meeting.meetingId);
+                        const availability = getMemberAvailabilityForMeeting(meeting.meetingId);
+                        
+                        // If member has assigned roles, show count badge
+                        if (assignedRoles && assignedRoles.length > 0) {
+                          const roleText = assignedRoles.length === 1 ? 'Role Assigned' : `${assignedRoles.length} Roles Assigned`;
+                          return (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              {roleText}
+                            </span>
+                          );
+                        }
+                        
+                        // If member has marked availability, show status and update button
+                        if (availability) {
+                          const statusInfo = getAvailabilityStatusInfo(availability.avaStatus);
+                          const StatusIcon = statusInfo.icon;
+                          
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.textColor}`}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {statusInfo.text}
+                              </span>
+                              <Link
+                                to={`/meetings/${meeting.meetingId}/mark-availability`}
+                                className="text-indigo-600 hover:text-indigo-900 inline-flex items-center text-xs"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Update
+                              </Link>
+                            </div>
+                          );
+                        }
+                        
+                        // Default: show mark availability button
+                        return (
+                          <Link
+                            to={`/meetings/${meeting.meetingId}/mark-availability`}
+                            className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Mark Availability
+                          </Link>
+                        );
+                      })()}
                     </div>
                   </td>
                 </tr>

@@ -14,7 +14,7 @@ const MeetingList = () => {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [showAvailability, setShowAvailability] = useState(false);
   const [showMeetingDetail, setShowMeetingDetail] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('upcoming');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {

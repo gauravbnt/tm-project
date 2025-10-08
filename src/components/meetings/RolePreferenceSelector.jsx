@@ -11,10 +11,22 @@ const RolePreferenceSelector = ({
 }) => {
   const [availableRoles, setAvailableRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
-  const [preferences, setPreferences] = useState(initialPreferences);
+  const [preferences, setPreferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+
+  // Update preferences when initialPreferences change
+  useEffect(() => {
+    if (initialPreferences && Array.isArray(initialPreferences)) {
+      setPreferences(initialPreferences);
+      if (initialPreferences.length > 0) {
+        onPreferencesChange(initialPreferences);
+      }
+    } else {
+      setPreferences([]);
+    }
+  }, [initialPreferences, onPreferencesChange]);
 
   useEffect(() => {
     const fetchMeetingRoles = async () => {

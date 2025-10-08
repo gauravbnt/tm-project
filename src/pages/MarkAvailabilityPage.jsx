@@ -6,6 +6,8 @@ import { meetingService } from '../services/meetingService';
 import memberAvailabilityService from '../services/memberAvailabilityService';
 import RolePreferenceSelector from '../components/meetings/RolePreferenceSelector';
 import { useAuth } from '../context/AuthContext';
+import { rolePreferenceService } from '../services/rolePreferenceService';
+import api from '../services/api';
 
 const MarkAvailabilityPage = () => {
   const { meetingId } = useParams();
@@ -16,6 +18,7 @@ const MarkAvailabilityPage = () => {
   const [meeting, setMeeting] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [rolePreferences, setRolePreferences] = useState([]);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Get member ID from auth context
   const memberId = user?.memberId;
@@ -48,13 +51,15 @@ const MarkAvailabilityPage = () => {
           
           if (currentAvailability) {
             setSelectedStatus(currentAvailability.avaStatus);
+            setIsUpdating(true);
             
             // Load existing role preferences if available
-            const preferences = await memberAvailabilityService.getRolePreferences(
-              memberId,
-              meetingId
-            );
-            setRolePreferences(preferences);
+            try {
+              const preferences = await memberAvailabilityService.getRolePreferences(memberId, meetingId);
+              setRolePreferences(preferences || []);
+            } catch (prefError) {
+              setRolePreferences([]);
+            }
           }
         } catch (error) {
           console.error('Error fetching current availability:', error);
@@ -168,15 +173,17 @@ const MarkAvailabilityPage = () => {
     <div className="max-w-3xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">Mark Your Availability</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isUpdating ? 'Update Your Availability' : 'Mark Your Availability'}
+          </h1>
           <p className="mt-1 text-gray-600">
-            For meeting: <span className="font-medium">{meeting.title}</span>
+            For meeting: <span className="font-medium">{meeting.title || meeting.meetingTheme}</span>
           </p>
           
           <div className="mt-4 space-y-2 text-sm text-gray-600">
             <div className="flex items-center">
               <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-              <span>{new Date(meeting.meetingDate).toLocaleDateString()}</span>
+              <span>{meeting.date ? new Date(meeting.date).toLocaleDateString() : 'Date not available'}</span>
             </div>
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-2 text-gray-500" />
@@ -186,10 +193,10 @@ const MarkAvailabilityPage = () => {
               <MapPin className="h-4 w-4 mr-2 mt-0.5 text-gray-500 flex-shrink-0" />
               <span>{meeting.location || 'Location not specified'}</span>
             </div>
-            {meeting.theme && (
+            {(meeting.theme || meeting.meetingTheme) && (
               <div className="flex items-start">
                 <Users className="h-4 w-4 mr-2 mt-0.5 text-gray-500 flex-shrink-0" />
-                <span>Theme: {meeting.theme}</span>
+                <span>Theme: {meeting.theme || meeting.meetingTheme}</span>
               </div>
             )}
           </div>
@@ -251,6 +258,8 @@ const MarkAvailabilityPage = () => {
                 <p className="text-sm text-gray-500 mb-4">
                   Select 1 to 3 roles you'd prefer for this meeting. This helps with role assignments.
                 </p>
+                
+                
                 <RolePreferenceSelector
                   meetingId={meetingId}
                   memberId={memberId}
@@ -282,7 +291,7 @@ const MarkAvailabilityPage = () => {
                 ) : (
                   <>
                     <Save className="-ml-1 mr-2 h-4 w-4" />
-                    Save Availability
+                    {isUpdating ? 'Update Availability' : 'Save Availability'}
                   </>
                 )}
               </button>
