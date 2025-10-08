@@ -45,4 +45,5 @@ public class Meeting {
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MeetingRole> meetingRoles = new ArrayList<>();
 
+    private boolean isPublished = false;
 }

@@ -52,7 +52,7 @@ public class RolePreferenceServiceImpl implements RolePreferenceService {
 
         // convert entities back to response DTOs
         return saved.stream()
-                .map(rolePreferenceMapper::toResponseDTO)
+                .map(rolePreferenceMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -61,14 +61,14 @@ public class RolePreferenceServiceImpl implements RolePreferenceService {
     public List<RolePreferenceResponseDTO> getRolePreferences(Long memberId, Long meetingId) {
        List<RolePreference> preferences = rolePreferenceRepository.findByMeetingIdAndMemberIdOrderByPrefOrderAsc(meetingId, memberId);
 
-        return preferences.stream().map(x->rolePreferenceMapper.toResponseDTO(x)).collect(Collectors.toList());
+        return preferences.stream().map(x->rolePreferenceMapper.toDto(x)).collect(Collectors.toList());
     }
 
     @Override
     public List<RolePreferenceResponseDTO> getMeetingRolePreferences(Long meetingId) {
         List<RolePreference> byMeetingId = rolePreferenceRepository.findByMeetingId(meetingId);
 
-        return byMeetingId.stream().map(x->rolePreferenceMapper.toResponseDTO(x)).collect(Collectors.toList());
+        return byMeetingId.stream().map(x->rolePreferenceMapper.toDto(x)).collect(Collectors.toList());
     }
 
     @Override

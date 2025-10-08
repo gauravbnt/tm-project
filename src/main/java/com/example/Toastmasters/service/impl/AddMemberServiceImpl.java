@@ -46,7 +46,7 @@ public class AddMemberServiceImpl implements AddMemberService {
             throw new DuplicateMemberIdException("A member already exists");
         }
 
-        return mapper.toResponseDTO(member);
+        return mapper.toDto(member);
     }
 
     private Long generateUniqueMemberId() {
@@ -61,7 +61,7 @@ public class AddMemberServiceImpl implements AddMemberService {
     public AddMemberResponseDTO getMemberById(Long memberId) {
         log.info("Fetching member by ID: {}", memberId);
         return memberRepository.findById(memberId)
-                .map(mapper::toResponseDTO)
+                .map(mapper::toDto)
                 .orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + memberId));
     }
 
@@ -70,7 +70,7 @@ public class AddMemberServiceImpl implements AddMemberService {
         log.info("Fetching all active members");
         return memberRepository.findAll()
                 .stream()
-                .map(mapper::toResponseDTO)
+                .map(mapper::toDto)
                 .toList();
     }
 
@@ -104,7 +104,7 @@ public class AddMemberServiceImpl implements AddMemberService {
         }
 
         memberRepository.save(member);
-        return mapper.toResponseDTO(member);
+        return mapper.toDto(member);
     }
 
     @Override

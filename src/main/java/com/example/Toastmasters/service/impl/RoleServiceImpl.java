@@ -26,21 +26,21 @@ public class RoleServiceImpl implements RoleService {
     public RoleResponseDTO addRole(RoleRequestDTO dto) {
         Role role = roleMapper.toEntity(dto);
         Role savedRole = roleRepository.save(role);
-        return roleMapper.toResponseDTO(savedRole);
+        return roleMapper.toDto(savedRole);
     }
 
     @Override
     public RoleResponseDTO getRoleById(Long roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found with ID: " + roleId));
-        return roleMapper.toResponseDTO(role);
+        return roleMapper.toDto(role);
     }
 
     @Override
     public List<RoleResponseDTO> getAllRoles() {
         return roleRepository.findAll()
                 .stream()
-                .map(roleMapper::toResponseDTO)
+                .map(roleMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -53,7 +53,7 @@ public class RoleServiceImpl implements RoleService {
         role.setRoleDescription(dto.getRoleDescription());
 
         Role updatedRole = roleRepository.save(role);
-        return roleMapper.toResponseDTO(updatedRole);
+        return roleMapper.toDto(updatedRole);
     }
 
     @Override

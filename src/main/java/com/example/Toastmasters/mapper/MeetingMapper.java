@@ -17,7 +17,7 @@ public interface MeetingMapper {
 
     @Mapping(target = "color", ignore = true)
     @Mapping(target = "roles", source = "meetingRoles")
-    MeetingResponseDTO toResponseDTO(Meeting meeting);
+    MeetingResponseDTO toDto(Meeting meeting);
 
     @AfterMapping
     default void setColor(Meeting meeting, @MappingTarget MeetingResponseDTO dto) {

@@ -35,7 +35,11 @@ public class MeetingRequestDTO {
     @NotBlank(message = "Location is required")
     @Size(min = 3, max = 255, message = "Location must be between 3 and 255 characters")
     private String location;
+    private boolean isPublished;
 
     private List<MeetingRoleResponseDTO> roles; // roles selected for this meeting
+
+
+
 
 }

@@ -14,5 +14,5 @@ public interface AddMemberMapper {
     AddMember toEntity(AddMemberRequestDTO dto);
 
     // Convert Entity -> Response DTO
-    AddMemberResponseDTO toResponseDTO(AddMember entity);
+    AddMemberResponseDTO toDto(AddMember entity);
 }

@@ -22,7 +22,10 @@ public class MeetingResponseDTO {
     private String location;
     private String color; // UI hint for meeting type
 
+    private boolean isPublished;
 
     private List<MeetingRoleResponseDTO> roles; // <-- include roles
+
+
 
 }

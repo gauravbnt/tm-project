@@ -20,7 +20,7 @@ public interface MeetingRoleMapper {
     }
 
     // Map Entity -> ResponseDTO
-    default MeetingRoleResponseDTO toResponseDTO(MeetingRole entity) {
+    default MeetingRoleResponseDTO toDto(MeetingRole entity) {
         MeetingRoleResponseDTO dto = new MeetingRoleResponseDTO();
         dto.setId(entity.getId());
         dto.setMeetingId(entity.getMeeting().getMeetingId());

@@ -46,7 +46,7 @@ public class MeetingRoleServiceImpl implements MeetingRoleService {
         MeetingRole meetingRole = meetingRoleMapper.toEntity(requestDTO, meeting, role);
         MeetingRole saved = meetingRoleRepository.save(meetingRole);
 
-        return meetingRoleMapper.toResponseDTO(saved);
+        return meetingRoleMapper.toDto(saved);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class MeetingRoleServiceImpl implements MeetingRoleService {
 
         MeetingRole updated = meetingRoleRepository.save(existing);
 
-        return meetingRoleMapper.toResponseDTO(updated);
+        return meetingRoleMapper.toDto(updated);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class MeetingRoleServiceImpl implements MeetingRoleService {
     public List<MeetingRoleResponseDTO> getMeetingRolesByMeeting(Long meetingId) {
         List<MeetingRole> roles = meetingRoleRepository.findByMeetingMeetingId(meetingId);
         return roles.stream()
-                .map(meetingRoleMapper::toResponseDTO)
+                .map(meetingRoleMapper::toDto)
                 .collect(Collectors.toList());
     }
 }

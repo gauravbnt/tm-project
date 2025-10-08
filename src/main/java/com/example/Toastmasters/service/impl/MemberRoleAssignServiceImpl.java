@@ -46,7 +46,7 @@ public class MemberRoleAssignServiceImpl implements MemberRoleAssignService {
         List<MemberRoleAssignment> savedAssignments = assignmentRepository.saveAll(roleAssignments);
 
         return savedAssignments.stream()
-                .map(memberRoleAssignMapper::toResponseDTO)
+                .map(memberRoleAssignMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -54,7 +54,7 @@ public class MemberRoleAssignServiceImpl implements MemberRoleAssignService {
     @Override
     public List<MemberRoleAssignResponseDTO> getAssignmentsByMeeting(Long meetingId) {
         return assignmentRepository.findByMeetingId(meetingId).stream()
-                .map(memberRoleAssignMapper::toResponseDTO)
+                .map(memberRoleAssignMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -62,7 +62,7 @@ public class MemberRoleAssignServiceImpl implements MemberRoleAssignService {
     @Override
     public List<MemberRoleAssignResponseDTO> getAssignmentsByMember(Long memberId) {
         return assignmentRepository.findByMemberId(memberId).stream()
-                .map(memberRoleAssignMapper::toResponseDTO)
+                .map(memberRoleAssignMapper::toDto)
                 .collect(Collectors.toList());
     }
 }

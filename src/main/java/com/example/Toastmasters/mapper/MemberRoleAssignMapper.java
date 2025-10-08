@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 public interface MemberRoleAssignMapper {
 
     // Entity -> Response DTO
-    MemberRoleAssignResponseDTO toResponseDTO(MemberRoleAssignment entity);
+    MemberRoleAssignResponseDTO toDto(MemberRoleAssignment entity);
 
     // Request DTO -> Entity
     @Mapping(target = "id", ignore = true) // DB will generate ID

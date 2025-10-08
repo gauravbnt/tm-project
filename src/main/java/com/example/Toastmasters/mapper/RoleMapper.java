@@ -12,5 +12,5 @@ public interface RoleMapper {
     @Mapping(target = "roleId", ignore = true)
     Role toEntity(RoleRequestDTO dto);
 
-    RoleResponseDTO toResponseDTO(Role role);
+    RoleResponseDTO toDto(Role role);
 }

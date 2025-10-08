@@ -176,7 +176,7 @@ public class MeetingServiceImpl implements MeetingService {
 
     // 🔹 Helper to map Meeting → MeetingResponseDTO including roles
     private MeetingResponseDTO mapMeetingToDTO(Meeting meeting) {
-        MeetingResponseDTO dto = meetingMapper.toResponseDTO(meeting);
+        MeetingResponseDTO dto = meetingMapper.toDto(meeting);
 
         if (meeting.getMeetingRoles() != null) {
             List<MeetingRoleResponseDTO> roleDTOs = new ArrayList<>();
